@@ -21,7 +21,7 @@ public class CorsConfig {
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Métodos HTTP que permitimos
                         .allowedHeaders("*") // Permitimos todas las cabeceras en las solicitudes
                         .allowCredentials(true) // Importante para que se envíen credenciales como JWT en el encabezado Authorization
-                        .maxAge(3600); // Duración en segundos para la caché de la solicitud "pre-flight" (OPTIONS)
+                        .maxAge(3600); 
             }
         };
     }
