@@ -17,7 +17,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Permitimos CORS para todas las rutas
-                        .allowedOrigins("http://localhost:5173") // Permitimos el origen de tu frontend React
+                        .allowedOrigins("https://green-water-0ea21d31e.6.azurestaticapps.net") // Permitimos el origen de tu frontend React
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Métodos HTTP que permitimos
                         .allowedHeaders("*") // Permitimos todas las cabeceras en las solicitudes
                         .allowCredentials(true) // Importante para que se envíen credenciales como JWT en el encabezado Authorization
