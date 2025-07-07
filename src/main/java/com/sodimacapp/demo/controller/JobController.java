@@ -75,4 +75,19 @@ public class JobController {
     public List<Job> getJobsByStatus(@PathVariable String status) {
         return jobService.getJobsByStatus(status); // Retorna la lista de trabajos con el estado especificado
     }
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('HR')") // Solo RRHH puede aprobar o rechazar trabajos.
+    public ResponseEntity<Job> updateJobStatus(@PathVariable Integer id, @RequestBody Map<String, String> payload) {
+        String newStatus = payload.get("status");
+        if (newStatus == null || newStatus.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        Job updatedJob = jobService.updateJobStatus(id, newStatus);
+        
+        if (updatedJob != null) {
+            return ResponseEntity.ok(updatedJob);
+        }
+        return ResponseEntity.notFound().build();
+    }
 }
