@@ -113,4 +113,10 @@ public class JobService {
     public List<Job> getJobsByStatus(String status) {
         return jobRepository.findByStatus(status);
     }
+    public Job updateJobStatus(Integer jobId, String newStatus) {
+        return jobRepository.findById(jobId).map(job -> {
+            job.setStatus(newStatus);
+            return jobRepository.save(job);
+        }).orElse(null);
+    }
 }
