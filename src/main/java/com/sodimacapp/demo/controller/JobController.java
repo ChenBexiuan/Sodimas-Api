@@ -1,6 +1,6 @@
 package com.sodimacapp.demo.controller; // Paquete donde se encuentra el controlador de trabajos
 
-import com.sodimacapp.demo.dto.CreateJobDTO;
+import com.sodimacapp.demo.dto.CreateJobDTO; // Importación del DTO para la creación de trabajos
 import com.sodimacapp.demo.dto.JobResponseDTO; // Importación del DTO para la respuesta de trabajos
 import com.sodimacapp.demo.model.Job; // Importación del modelo de trabajo
 import com.sodimacapp.demo.service.JobService; // Importación del servicio de trabajos
@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize; // Importación
 import org.springframework.security.core.Authentication; // Importación para la autenticación del usuario
 import org.springframework.web.bind.annotation.*; // Importación para las anotaciones de controladores
 import java.util.List; // Importación para la lista de trabajos
+import java.util.Map; // Importación para el payload de actualización de estado
 
 @RestController // Indica que esta clase es un controlador REST
 @RequestMapping("/api/jobs") // Mapeo de la ruta base para los trabajos
@@ -22,35 +23,39 @@ public class JobController {
         this.jobService = jobService;
     }
 
-    // Endpoint para obtener todos los trabajos
+    // Endpoint para obtener todos los trabajos como DTOs
     @GetMapping
     public List<JobResponseDTO> getAllJobs() {
-        return jobService.getAllJobsWithCreator(); // Retorna la lista de trabajos con su creador
+        return jobService.getAllJobsWithCreator();
     }
 
     // Endpoint para obtener un trabajo por su ID
     @GetMapping("/{id}")
     public ResponseEntity<Job> getJobById(@PathVariable Integer id) {
         return jobService.getJobById(id)
-                .map(ResponseEntity::ok) // Retorna el trabajo si se encuentra
-                .orElse(ResponseEntity.notFound().build()); // Retorna 404 si no se encuentra
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
     
-    // Endpoint para crear un nuevo trabajo
+    // --- ENDPOINT DE CREACIÓN MODIFICADO CON DTO ---
+    // Ahora recibe un DTO en lugar de la entidad completa para mayor seguridad.
     @PostMapping
     @PreAuthorize("hasRole('MANAGER') or hasRole('HR')") 
     public ResponseEntity<Job> createJob(@RequestBody CreateJobDTO jobDTO, Authentication authentication) {
         String creatorEmail = authentication.getName();
+        // Obtenemos el rol desde el objeto Authentication
+        String creatorRole = authentication.getAuthorities().iterator().next().getAuthority();
         
-        // Llamamos al servicio que ahora también usa el DTO.
-        Job newJob = jobService.createJob(jobDTO, creatorEmail, authentication.getAuthorities().iterator().next().getAuthority());
+        Job newJob = jobService.createJob(jobDTO, creatorEmail, creatorRole);
         
         if (newJob != null) {
             return new ResponseEntity<>(newJob, HttpStatus.CREATED);
         }
         return ResponseEntity.badRequest().build();
     }
-    // Endpoint para actualizar un trabajo existente por su ID
+    
+    // --- ENDPOINT DE ACTUALIZACIÓN MODIFICADO CON DTO ---
+    // También utiliza un DTO para la actualización, evitando que se modifiquen campos no deseados.
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('HR')")
     public ResponseEntity<Job> updateJob(@PathVariable Integer id, @RequestBody CreateJobDTO jobDetails) {
@@ -60,34 +65,33 @@ public class JobController {
         }
         return ResponseEntity.notFound().build();
     }
-
-
-    // Endpoint para eliminar un trabajo por su ID
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER') or hasRole('HR')") // Solo usuarios autorizados pueden eliminar trabajos
-    public ResponseEntity<Void> deleteJob(@PathVariable Integer id) {
-        jobService.deleteJob(id); // Elimina el trabajo
-        return ResponseEntity.noContent().build(); // Retorna 204 No Content
-    }
-
-    // Endpoint para obtener trabajos por su estado
-    @GetMapping("/status/{status}")
-    public List<Job> getJobsByStatus(@PathVariable String status) {
-        return jobService.getJobsByStatus(status); // Retorna la lista de trabajos con el estado especificado
-    }
+    
+    // Endpoint específico para actualizar SOLO el estado de un trabajo
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('HR')") // Solo RRHH puede aprobar o rechazar trabajos.
+    @PreAuthorize("hasRole('HR')")
     public ResponseEntity<Job> updateJobStatus(@PathVariable Integer id, @RequestBody Map<String, String> payload) {
         String newStatus = payload.get("status");
         if (newStatus == null || newStatus.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        
         Job updatedJob = jobService.updateJobStatus(id, newStatus);
-        
         if (updatedJob != null) {
             return ResponseEntity.ok(updatedJob);
         }
         return ResponseEntity.notFound().build();
+    }
+
+    // Endpoint para eliminar un trabajo por su ID
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER') or hasRole('HR')")
+    public ResponseEntity<Void> deleteJob(@PathVariable Integer id) {
+        jobService.deleteJob(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Endpoint para obtener trabajos por su estado
+    @GetMapping("/status/{status}")
+    public List<Job> getJobsByStatus(@PathVariable String status) {
+        return jobService.getJobsByStatus(status);
     }
 }
